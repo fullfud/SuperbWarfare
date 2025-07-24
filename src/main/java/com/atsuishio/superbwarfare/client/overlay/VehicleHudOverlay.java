@@ -41,6 +41,7 @@ import net.minecraftforge.client.gui.overlay.IGuiOverlay;
 import org.joml.Math;
 import top.theillusivec4.curios.api.CuriosApi;
 
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.atsuishio.superbwarfare.client.RenderHelper.preciseBlit;
@@ -52,6 +53,7 @@ import static com.atsuishio.superbwarfare.entity.vehicle.base.VehicleEntity.*;
 public class VehicleHudOverlay implements IGuiOverlay {
 
     public static final String ID = Mod.MODID + "_vehicle_hud";
+    private static final Random RANDOM = new Random();
 
     private static float scopeScale = 1;
     private static final ResourceLocation FRAME = Mod.loc("textures/screens/land/tv_frame.png");
@@ -127,7 +129,6 @@ public class VehicleHudOverlay implements IGuiOverlay {
             poseStack.rotateAround(Axis.ZP.rotationDegrees(-90 + angle), 102, screenHeight - 20, 0);
             preciseBlit(guiGraphics, GEAR, 86, screenHeight - 36, 0, 0, 32, 32, 32, 32);
             poseStack.popPose();
-
         }
 
         poseStack.popPose();
@@ -180,11 +181,28 @@ public class VehicleHudOverlay implements IGuiOverlay {
                 preciseBlit(guiGraphics, FRAME, (float) -addW / 2, (float) -addH / 2, 10, 0, 0.0F, screenWidth + addW, screenHeight + addH, screenWidth + addW, screenHeight + addH);
                 preciseBlit(guiGraphics, Mod.loc("textures/screens/land/line.png"), screenWidth / 2f - 64, screenHeight - 56, 0, 0.0F, 128, 1, 128, 1);
 
-                // 指南针
+                // ----------- НАЧАЛО: ПРОЦЕДУРНАЯ ГЕНЕРАЦИЯ ШУМА -----------
+                // Эти параметры можно менять, чтобы настроить эффект
+                int noiseDensity = 350; // Количество "зерен" шума. Увеличь для более плотного шума.
+                int alpha = 25;         // Прозрачность шума (от 0 до 255).
+
+                for (int i = 0; i < noiseDensity; i++) {
+                    int x = RANDOM.nextInt(screenWidth);
+                    int y = RANDOM.nextInt(screenHeight);
+                    // Генерируем случайный оттенок серого для точки
+                    int grey = 100 + RANDOM.nextInt(100); // от 100 до 200
+                    // Собираем цвет в формате ARGB (Alpha, Red, Green, Blue)
+                    int color = (alpha << 24) | (grey << 16) | (grey << 8) | grey;
+                    // Рисуем точку шума размером 1x1 пиксель
+                    guiGraphics.fill(x, y, x + 1, y + 1, color);
+                }
+                // ----------- КОНЕЦ: ПРОЦЕДУРНАЯ ГЕНЕРАЦИЯ ШУМА -----------
+
+                // 指南针 (Компас)
                 preciseBlit(guiGraphics, Mod.loc("textures/screens/compass.png"), (float) screenWidth / 2 - 128, (float) 10, 128 + ((float) 64 / 45 * player.getYRot()), 0, 256, 16, 512, 16);
                 preciseBlit(guiGraphics, Mod.loc("textures/screens/helicopter/roll_ind.png"), screenWidth / 2f - 8, 30, 0, 0.0F, 16, 16, 16, 16);
 
-                // 炮塔方向
+                // 炮塔方向 (Направление башни)
                 poseStack.pushPose();
 
                 //车身
@@ -214,7 +232,6 @@ public class VehicleHudOverlay implements IGuiOverlay {
 
                 //引擎
                 ResourceLocation engine;
-
                 if (mobileVehicle.getEntityData().get(ENGINE1_DAMAGED)) {
                     engine = Mod.loc("textures/screens/land/engine_damaged.png");
                 } else {
@@ -263,7 +280,6 @@ public class VehicleHudOverlay implements IGuiOverlay {
                 Vec3 hitPos = result.getLocation();
 
                 double blockRange = player.getEyePosition(1).distanceTo(hitPos);
-
                 double entityRange = 0;
 
                 Entity lookingEntity = TraceTool.camerafFindLookingEntity(player, cameraPos, viewVec, 512);
@@ -285,21 +301,18 @@ public class VehicleHudOverlay implements IGuiOverlay {
                     }
                 }
 
-                // 载具自定义第一人称渲染
                 mobileVehicle.renderFirstPersonOverlay(guiGraphics, mc.font, player, screenWidth, screenHeight, scale);
 
-                // 血量
                 double heal = mobileVehicle.getHealth() / mobileVehicle.getMaxHealth();
                 guiGraphics.drawString(Minecraft.getInstance().font, Component.literal(FormatTool.format0D(100 * heal)), screenWidth / 2 - 165, screenHeight / 2 - 46, Mth.hsvToRgb((float) heal / 3.745318352059925F, 1.0F, 1.0F), false);
 
-                //诱饵
                 guiGraphics.drawString(Minecraft.getInstance().font, Component.literal("SMOKE " + mobileVehicle.getEntityData().get(DECOY_COUNT)), screenWidth / 2 - 165, screenHeight / 2 - 36, 0x66FF00, false);
 
                 renderKillIndicator(guiGraphics, screenWidth, screenHeight);
             } else if (Minecraft.getInstance().options.getCameraType() == CameraType.THIRD_PERSON_BACK && !ClientEventHandler.zoomVehicle) {
                 Vec3 pos = cameraPos.add(iLand.getBarrelVec(partialTick).scale(192));
                 Vec3 p = VectorUtil.worldToScreen(pos);
-                // 第三人称准星
+
                 if (VectorUtil.canSee(pos)) {
                     float x = (float) p.x;
                     float y = (float) p.y;
@@ -308,11 +321,9 @@ public class VehicleHudOverlay implements IGuiOverlay {
                     renderKillIndicator3P(guiGraphics, x - 7.5f + (float) (2 * (Math.random() - 0.5f)), y - 7.5f + (float) (2 * (Math.random() - 0.5f)));
 
                     poseStack.pushPose();
-
                     poseStack.translate(x, y, 0);
                     poseStack.scale(0.75f, 0.75f, 1);
 
-                    // 载具自定义第三人称准心
                     mobileVehicle.renderThirdPersonOverlay(guiGraphics, mc.font, player, screenWidth, screenHeight, scale);
 
                     double health = 1 - mobileVehicle.getHealth() / mobileVehicle.getMaxHealth();
@@ -434,7 +445,6 @@ public class VehicleHudOverlay implements IGuiOverlay {
 
         var temp = wasRenderingWeapons;
         wasRenderingWeapons = false;
-
 
         assert player != null;
 
