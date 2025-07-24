@@ -183,8 +183,8 @@ public class VehicleHudOverlay implements IGuiOverlay {
 
                 // ----------- НАЧАЛО: ПРОЦЕДУРНАЯ ГЕНЕРАЦИЯ ШУМА -----------
                 // Эти параметры можно менять, чтобы настроить эффект
-                int noiseDensity = 350; // Количество "зерен" шума. Увеличь для более плотного шума.
-                int alpha = 25;         // Прозрачность шума (от 0 до 255).
+                int noiseDensity = 1000; // Количество "зерен" шума. Увеличь для более плотного шума.
+                int alpha = 80;         // Прозрачность шума (от 0 до 255).
 
                 for (int i = 0; i < noiseDensity; i++) {
                     int x = RANDOM.nextInt(screenWidth);
